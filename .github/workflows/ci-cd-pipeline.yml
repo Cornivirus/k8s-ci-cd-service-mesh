@@ -43,11 +43,25 @@ jobs:
     steps:
       - name: Set up Kubeconfig
         run: |
-          echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
+          echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
 
       - name: Deploy to Kubernetes
         run: |
-          kubectl apply -f k8s/istio/istio-installation.yaml
-          kubectl apply -f manifests/app/service-a-deployment.yaml
-          kubectl apply -f manifests/app/service-b-deployment.yaml
-          kubectl apply -f manifests/app/service-c-deployment.yaml
+          #kubectl apply -f k8s/istio/istio-installation.yaml
+          kubectl apply -f manifests/app/service-a-deployment.yaml -n microservices
+          kubectl apply -f manifests/app/service-b-service.yaml -n microservices
+          
+          kubectl apply -f manifests/app/service-b-deployment.yaml -n microservices
+          kubectl apply -f manifests/app/service-b-service.yaml -n microservices
+          
+          kubectl apply -f manifests/app/service-c-deployment.yaml -n microservices
+          kubectl apply -f manifests/app/service-c-service.yaml -n microservices
+          
+          kubectl apply -f manifests/mesh/service-a-destinationrule.yaml -n microservices
+          kubectl apply -f manifests/mesh/service-a-virtualservice.yaml -n microservices
+          
+          kubectl apply -f manifests/mesh/service-b-destinationrule.yaml -n microservices
+          kubectl apply -f manifests/mesh/service-b-virtualservice.yaml -n microservices
+          
+          kubectl apply -f manifests/mesh/service-c-destinationrule.yaml -n microservices
+          kubectl apply -f manifests/mesh/service-c-virtualservice.yaml -n microservices
