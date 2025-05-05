@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-service-a
+spec:
+  containers:
+  - name: service-a
+    image: joshuamsaechao/service-a:latest
+    imagePullPolicy: Never
+  restartPolicy: Never

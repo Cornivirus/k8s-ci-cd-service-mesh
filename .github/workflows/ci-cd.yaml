@@ -1,0 +1,107 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # Job for Continuous Integration (CI)
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+
+      - name: Install dependencies
+        run: |
+          pip install -r src/service-a/requirements.txt
+          pip install -r src/service-b/requirements.txt
+          pip install -r src/service-c/requirements.txt
+
+      - name: Run Linting (flake8)
+        run: |
+          pip install flake8
+          flake8 src/service-a src/service-b src/service-c
+
+      - name: Run tests (unit tests)
+        run: |
+          pytest src/service-a/test.py
+          pytest src/service-b/test.py
+          pytest src/service-c/test.py
+
+      - name: Scan Docker images for vulnerabilities (Trivy)
+        run: |
+          docker build -t service-a src/service-a
+          docker build -t service-b src/service-b
+          docker build -t service-c src/service-c
+          trivy image --exit-code 1 --no-progress service-a
+          trivy image --exit-code 1 --no-progress service-b
+          trivy image --exit-code 1 --no-progress service-c
+
+      - name: Build Docker images
+        run: |
+          docker build -t service-a src/service-a
+          docker build -t service-b src/service-b
+          docker build -t service-c src/service-c
+
+      - name: Push Docker images to DockerHub
+        run: |
+          docker login -u ${{ secrets.DOCKER_USERNAME }} -p ${{ secrets.DOCKER_PASSWORD }}
+          docker tag service-a ${{ secrets.DOCKER_USERNAME }}/service-a:latest
+          docker tag service-b ${{ secrets.DOCKER_USERNAME }}/service-b:latest
+          docker tag service-c ${{ secrets.DOCKER_USERNAME }}/service-c:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/service-a:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/service-b:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/service-c:latest
+
+  # Job for Continuous Delivery (CD)
+  cd:
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v1
+        with:
+          kubectl-version: '1.18'
+
+      - name: Set up Kustomize
+        run: |
+          curl -s https://api.github.com/repos/kubernetes-sigs/kustomize/releases/latest | jq -r .assets[].browser_download_url | grep linux_amd64 | wget -i -
+          tar -xzvf kustomize_v*.tar.gz
+          sudo mv kustomize /usr/local/bin
+
+      - name: Set up Helm
+        run: |
+          curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+
+      - name: Set up environment variables for secrets
+        run: |
+          echo "KUBE_CONFIG=$KUBE_CONFIG" >> $GITHUB_ENV
+
+      - name: Deploy to Kubernetes Cluster using Kustomize
+        run: |
+          kubectl apply -f manifests/rbac/namespace.yaml
+          kustomize build ./manifests/app | kubectl apply -f -
+
+      - name: Run Health Check for services
+        run: |
+          kubectl rollout status deployment/service-a-deployment -n microservices
+          kubectl rollout status deployment/service-b-deployment -n microservices
+          kubectl rollout status deployment/service-c-deployment -n microservices
+
+      - name: Clean up resources
+        if: success()
+        run: |
+          kubectl delete deployment service-a-deployment service-b-deployment service-c-deployment -n microservices
