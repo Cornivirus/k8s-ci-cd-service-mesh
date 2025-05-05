@@ -24,17 +24,17 @@ jobs:
 
       - name: Build and push service-a Docker image
         run: |
-          docker build -t joshuamsaechao/service-a .
+          docker build -t joshuamsaechao/service-a ./src/service-a .
           docker push joshuamsaechao/service-a
 
       - name: Build and push service-b Docker image
         run: |
-          docker build -t joshuamsaechao/service-b .
+          docker build -t joshuamsaechao/service-b ./src/service-b .
           docker push joshuamsaechao/service-b
 
       - name: Build and push frontend Docker image
         run: |
-          docker build -t joshuamsaechao/service-c .
+          docker build -t joshuamsaechao/service-c ./src/service-c .
           docker push joshuamsaechao/service-c
 
   deploy:
