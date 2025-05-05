@@ -24,18 +24,18 @@ jobs:
 
       - name: Build and push service-a Docker image
         run: |
-          docker build -t myorg/service-a .
-          docker push myorg/service-a
+          docker build -t joshuamsaechao/service-a .
+          docker push joshuamsaechao/service-a
 
       - name: Build and push service-b Docker image
         run: |
-          docker build -t myorg/service-b .
-          docker push myorg/service-b
+          docker build -t joshuamsaechao/service-b .
+          docker push joshuamsaechao/service-b
 
-      - name: Build and push frontend Docker image
+      - name: Build and push service-c Docker image
         run: |
-          docker build -t myorg/frontend .
-          docker push myorg/frontend
+          docker build -t joshuamsaechao/service-c .
+          docker push joshuamsaechao/service-c
 
   deploy:
     runs-on: ubuntu-latest
@@ -48,6 +48,6 @@ jobs:
       - name: Deploy to Kubernetes
         run: |
           kubectl apply -f k8s/istio/istio-installation.yaml
-          kubectl apply -f microservices/service-a/deployment.yaml
-          kubectl apply -f microservices/service-b/deployment.yaml
-          kubectl apply -f microservices/frontend/deployment.yaml
+          kubectl apply -f manifests/app/service-a-deployment.yaml
+          kubectl apply -f manifests/app/service-a-deployment.yaml
+          kubectl apply -f manifests/app/service-a-deployment.yaml
